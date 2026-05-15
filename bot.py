@@ -31,15 +31,15 @@ QR_FILE = "qr.png"
 # ================== ITEMS ==================
 
 ITEMS = {
-    "shein":      {"name": "SHEIN Code",      "price": "₹90"},
-    "myntra":     {"name": "Myntra Code",     "price": "₹40"},
-    "bigbasket":  {"name": "BigBasket Code",  "price": "₹10"},
+    "shein":      {"name": "SHEIN 1000 per 500 Code", "price": "₹25"},
+    "myntra":     {"name": "Myntra Code",              "price": "₹40", "force_out_of_stock": True},
+    "bigbasket":  {"name": "BigBasket Code",           "price": "₹8"},
 }
 
 ITEM_TEXT_MAP = {
-    "SHEIN Code - ₹90":      "shein",
-    "Myntra Code - ₹40":     "myntra",
-    "BigBasket Code - ₹10":  "bigbasket",
+    "SHEIN 1000 per 500 Code - ₹25": "shein",
+    "Myntra Code - Out of Stock":     "myntra",
+    "BigBasket Code - ₹8":            "bigbasket",
 }
 
 # ================== LOGGING ==================
@@ -145,9 +145,9 @@ def main_menu():
 def items_menu():
     return ReplyKeyboardMarkup(
         [
-            ["SHEIN Code - ₹90"],
-            ["Myntra Code - ₹40"],
-            ["BigBasket Code - ₹10"],
+            ["SHEIN 1000 per 500 Code - ₹25"],
+            ["Myntra Code - Out of Stock"],
+            ["BigBasket Code - ₹8"],
             ["⬅️ Back"],
         ],
         resize_keyboard=True,
@@ -211,9 +211,11 @@ async def show_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for key, info in ITEMS.items():
         codes = stock.get(key, [])
         count = len(codes)
-        status = "✅ Available" if count > 0 else "❌ Out of Stock"
+        forced_oos = info.get("force_out_of_stock", False)
+        status = "❌ Out of Stock" if forced_oos or count == 0 else "✅ Available"
+        display_count = 0 if forced_oos else count
         lines.append(f"│ *{info['name']}*")
-        lines.append(f"│ Price: {info['price']}  |  Qty: `{count}` {status}")
+        lines.append(f"│ Price: {info['price']}  |  Qty: `{display_count}` {status}")
         lines.append("│")
 
     lines.append("└─────────────────────────┘")
@@ -311,7 +313,7 @@ async def item_select(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check stock first
     stock = load_stock()
     count = len(stock.get(key, []))
-    if count == 0:
+    if ITEMS[key].get("force_out_of_stock", False) or count == 0:
         await update.message.reply_text(
             f"❌ *{ITEMS[key]['name']}* abhi out of stock hai.\n\n"
             "Baad mein try karo ya admin se contact karo.",
@@ -653,7 +655,8 @@ async def cmd_addcode(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "⚠️ *Usage:* `/addcode <item> <code>`\n\n"
             "Items: `shein` `myntra` `bigbasket`\n\n"
-            "Example:\n`/addcode myntra MYNTRA-ABC-123`",
+            "Note: `myntra` is currently set to Out of Stock in the bot menu.\n\n"
+            "Example:\n`/addcode shein SHEIN-ABC-123`",
             parse_mode="Markdown",
         )
         return
