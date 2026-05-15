@@ -31,15 +31,19 @@ QR_FILE = "qr.png"
 # ================== ITEMS ==================
 
 ITEMS = {
-    "shein":      {"name": "SHEIN 1000 per 500 Code", "price": "₹25"},
-    "myntra":     {"name": "Myntra Code",              "price": "₹40", "force_out_of_stock": True},
-    "bigbasket":  {"name": "BigBasket Code",           "price": "₹8"},
+    "shein_500":     {"name": "SHEIN 1000 per 500 Code",       "price": "₹25", "manual_stock": 5},
+    "shein_800":     {"name": "SHEIN 1000 per 800 Code",       "price": "₹25", "force_out_of_stock": True},
+    "myntra":        {"name": "Myntra Code",                   "price": "₹40", "force_out_of_stock": True},
+    "bigbasket":     {"name": "BigBasket Code",                "price": "₹8"},
+    "lenskart_gold": {"name": "Lenskart Gold Membership 1YR",  "price": "₹99", "manual_stock": 1},
 }
 
 ITEM_TEXT_MAP = {
-    "SHEIN 1000 per 500 Code - ₹25": "shein",
-    "Myntra Code - Out of Stock":     "myntra",
-    "BigBasket Code - ₹8":            "bigbasket",
+    "SHEIN 1000 per 500 Code - ₹25":              "shein_500",
+    "SHEIN 1000 per 800 Code - Out of Stock":    "shein_800",
+    "Myntra Code - Out of Stock":                "myntra",
+    "BigBasket Code - ₹8":                       "bigbasket",
+    "Lenskart Gold Membership 1YR - ₹99":        "lenskart_gold",
 }
 
 # ================== LOGGING ==================
@@ -146,8 +150,10 @@ def items_menu():
     return ReplyKeyboardMarkup(
         [
             ["SHEIN 1000 per 500 Code - ₹25"],
+            ["SHEIN 1000 per 800 Code - Out of Stock"],
             ["Myntra Code - Out of Stock"],
             ["BigBasket Code - ₹8"],
+            ["Lenskart Gold Membership 1YR - ₹99"],
             ["⬅️ Back"],
         ],
         resize_keyboard=True,
@@ -179,6 +185,16 @@ def is_admin(uid: int) -> bool:
 def get_uname(user) -> str:
     return f"@{user.username}" if user.username else "N/A"
 
+
+def effective_stock_count(key: str, stock: dict) -> int:
+    """Return stock count. manual_stock is used for items delivered manually by admin."""
+    item = ITEMS.get(key, {})
+    if item.get("force_out_of_stock", False):
+        return 0
+    if "manual_stock" in item:
+        return int(item.get("manual_stock", 0))
+    return len(stock.get(key, []))
+
 # ================== START ==================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -209,13 +225,10 @@ async def show_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines.append("┌─────────────────────────┐")
 
     for key, info in ITEMS.items():
-        codes = stock.get(key, [])
-        count = len(codes)
-        forced_oos = info.get("force_out_of_stock", False)
-        status = "❌ Out of Stock" if forced_oos or count == 0 else "✅ Available"
-        display_count = 0 if forced_oos else count
+        count = effective_stock_count(key, stock)
+        status = "✅ Available" if count > 0 else "❌ Out of Stock"
         lines.append(f"│ *{info['name']}*")
-        lines.append(f"│ Price: {info['price']}  |  Qty: `{display_count}` {status}")
+        lines.append(f"│ Price: {info['price']}  |  Qty: `{count}` {status}")
         lines.append("│")
 
     lines.append("└─────────────────────────┘")
@@ -312,8 +325,8 @@ async def item_select(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Check stock first
     stock = load_stock()
-    count = len(stock.get(key, []))
-    if ITEMS[key].get("force_out_of_stock", False) or count == 0:
+    count = effective_stock_count(key, stock)
+    if count == 0:
         await update.message.reply_text(
             f"❌ *{ITEMS[key]['name']}* abhi out of stock hai.\n\n"
             "Baad mein try karo ya admin se contact karo.",
@@ -654,9 +667,9 @@ async def cmd_addcode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 2:
         await update.message.reply_text(
             "⚠️ *Usage:* `/addcode <item> <code>`\n\n"
-            "Items: `shein` `myntra` `bigbasket`\n\n"
-            "Note: `myntra` is currently set to Out of Stock in the bot menu.\n\n"
-            "Example:\n`/addcode shein SHEIN-ABC-123`",
+            "Items: `shein_500` `shein_800` `myntra` `bigbasket` `lenskart_gold`\n\n"
+            "Note: `shein_800` and `myntra` are currently set to Out of Stock in the bot menu.\n\n"
+            "Example:\n`/addcode shein_500 SHEIN-ABC-123`",
             parse_mode="Markdown",
         )
         return
@@ -664,7 +677,7 @@ async def cmd_addcode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     key = context.args[0].lower()
     if key not in ITEMS:
         await update.message.reply_text(
-            f"❌ Unknown item: `{key}`\nValid: `shein`, `myntra`, `bigbasket`",
+            f"❌ Unknown item: `{key}`\nValid: `shein_500`, `shein_800`, `myntra`, `bigbasket`",
             parse_mode="Markdown",
         )
         return
@@ -692,7 +705,8 @@ async def cmd_stockadmin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for key, info in ITEMS.items():
         codes = stock.get(key, [])
-        lines.append(f"*{info['name']}* — {len(codes)} codes")
+        display_count = effective_stock_count(key, stock)
+        lines.append(f"*{info['name']}* — {display_count} stock")
         if codes:
             for i, c in enumerate(codes, 1):
                 lines.append(f"  {i}. `{c}`")
