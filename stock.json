@@ -1,0 +1,25 @@
+{
+  "shein": [
+    "SHEIN-XYZ-456 /addcode bigbasket BB-789-DEF",
+    "SHEIN-XYZ-456",
+    "SHEIN-XYZ-456",
+    "SHEIN-XYZ-456"
+  ],
+  "myntra": [
+    "MYNTRA-ABC-123 /addcode shein SHEIN-XYZ-456 /addcode bigbasket BB-789-DEF",
+    "MYNTRA-ABC-123 /addcode shein SHEIN-XYZ-456 /addcode bigbasket BB-789-DEF",
+    "MYNTRA-ABC-123 /addcode shein SHEIN-XYZ-456 /addcode bigbasket BB-789-DEF"
+  ],
+  "bigbasket": [
+    "BB-789-DEF",
+    "BB-789-DEF",
+    "BB-789-DEF",
+    "BB-789-DEF",
+    "BB-789-DEF",
+    "BB-789-DEF",
+    "BB-789-DEF",
+    "BB-789-DEF",
+    "BB-789-DEF",
+    "BB-789-DEF"
+  ]
+}
